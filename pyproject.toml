@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kisskh-sync"
+version = "0.1.0"
+description = "Self-hosted KissKH series synchronizer for Jellyfin"
+requires-python = ">=3.13"
+dependencies = ["fastapi>=0.115,<1", "uvicorn[standard]>=0.34,<1", "pydantic-settings>=2.7,<3", "sqlalchemy>=2.0,<3", "apscheduler>=3.11,<4", "httpx>=0.28,<1", "kisskh-downloader>=0.2.4", "playwright>=1.59"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<9", "pytest-asyncio>=0.25,<1", "ruff>=0.9,<1", "httpx>=0.28,<1"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = ["integration: external service tests (not run in CI)"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

@@ -1,0 +1,27 @@
+services:
+  kisskh-sync:
+    build: .
+    container_name: kisskh-sync
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    ports:
+      - "9020:9020"
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 9020
+      DOWNLOAD_DIR: /downloads
+      MEDIA_DIR: /srv/media/data/media/tv
+      DATABASE_URL: sqlite:////data/kisskh.db
+      DEFAULT_QUALITY: ${DEFAULT_QUALITY:-1080p}
+      DEFAULT_SUBTITLE_LANGUAGE: ${DEFAULT_SUBTITLE_LANGUAGE:-en}
+      SYNC_INTERVAL_MINUTES: ${SYNC_INTERVAL_MINUTES:-360}
+      MAX_CONCURRENT_DOWNLOADS: ${MAX_CONCURRENT_DOWNLOADS:-1}
+      JELLYFIN_URL: ${JELLYFIN_URL:-http://jellyfin:8096}
+      JELLYFIN_API_KEY: ${JELLYFIN_API_KEY:-}
+      JELLYFIN_LIBRARY_ID: ${JELLYFIN_LIBRARY_ID:-}
+      KISSKH_STREAM_KEY: ${KISSKH_STREAM_KEY:-}
+      KISSKH_SUB_KEY: ${KISSKH_SUB_KEY:-}
+    volumes:
+      - /srv/media/appdata/kisskh-sync/data:/data
+      - /srv/media/data/downloads/kisskh:/downloads
+      - /srv/media/data/media/tv:/srv/media/data/media/tv

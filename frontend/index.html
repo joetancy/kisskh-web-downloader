@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1020" />
+    <title>KissKH Sync</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0b1020;
+        color: #edf2ff;
+        font-synthesis: none;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(ellipse at 12% 0%, #1b2850 0, transparent 40%), #0b1020;
+      }
+      button, input { font: inherit; }
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        min-height: 40px;
+        padding: .58rem .9rem;
+        border: 1px solid #364363;
+        border-radius: 10px;
+        background: #18223d;
+        color: #eaf0ff;
+        font-weight: 650;
+        cursor: pointer;
+        transition: background .16s, border-color .16s, transform .16s;
+      }
+      button:hover:not(:disabled) { background: #26365d; border-color: #7187c2; transform: translateY(-1px); }
+      button:disabled { cursor: wait; opacity: .58; }
+      button.primary { border-color: #7665fa; background: #6755ed; color: white; }
+      button.primary:hover:not(:disabled) { background: #7969ff; }
+      button.subtle { background: transparent; }
+      input[type="url"] {
+        width: min(100%, 540px);
+        min-height: 44px;
+        padding: .7rem .9rem;
+        border: 1px solid #303d5c;
+        border-radius: 10px;
+        outline: none;
+        background: #0e162b;
+        color: #f5f7ff;
+      }
+      input[type="url"]:focus { border-color: #8b7cff; box-shadow: 0 0 0 3px #7665fa33; }
+      input[type="checkbox"] { width: 17px; height: 17px; accent-color: #8778ff; }
+      .shell { width: min(1080px, calc(100% - 36px)); margin: 0 auto; padding: 52px 0 80px; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 34px; }
+      .brand { display: flex; align-items: center; gap: 14px; }
+      .brand-icon {
+        display: grid; width: 48px; height: 48px; place-items: center;
+        border: 1px solid #7565ef88; border-radius: 15px;
+        background: linear-gradient(145deg, #8878ff, #4d3cca); box-shadow: 0 10px 32px #5d4ce344;
+        font-size: 24px;
+      }
+      h1 { margin: 0; font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.04em; }
+      .tagline, .muted { color: #9eabc9; }
+      .tagline { margin: 4px 0 0; font-size: .92rem; }
+      .status-indicator { display: flex; align-items: center; gap: 8px; color: #b8c4df; font-size: .85rem; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: #3dd598; box-shadow: 0 0 14px #3dd59888; }
+      .panel { border: 1px solid #253251; border-radius: 18px; background: #111a30e8; box-shadow: 0 22px 70px #0003; }
+      .add-panel { padding: 22px; margin-bottom: 28px; }
+      .settings-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 20px; margin: -12px 0 28px; }
+      .setting-description { margin-top: 4px; color: #9eabc9; font-size: .83rem; }
+      .setting-controls { display: flex; align-items: center; gap: 9px; }
+      select { min-height: 40px; padding: .5rem .7rem; border: 1px solid #364363; border-radius: 9px; background: #0e162b; color: #edf2ff; }
+      .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 15px; }
+      h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.02em; }
+      .add-form { display: flex; flex-wrap: wrap; gap: 10px; }
+      .series-heading { margin: 0 2px 14px; }
+      .series-count { color: #9eabc9; font-size: .88rem; }
+      #list { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+      .series-card { overflow: hidden; padding: 20px 22px; }
+      .series-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+      .series-title { margin: 0; font-size: 1.13rem; font-weight: 720; overflow-wrap: anywhere; }
+      .series-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 7px; color: #9eabc9; font-size: .82rem; }
+      .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+      .feedback { display: none; align-items: center; gap: 9px; margin-top: 16px; padding: 11px 13px; border: 1px solid #34415f; border-radius: 10px; background: #0b1327; color: #cbd6ef; font-size: .9rem; }
+      .feedback.visible { display: flex; }
+      .feedback.error { border-color: #74394b; background: #2a1420; color: #ffc1cb; }
+      .feedback.success { border-color: #28604f; background: #10271f; color: #a7efd1; }
+      .feedback .spinner { width: 15px; height: 15px; flex: 0 0 15px; border: 2px solid #7181ad66; border-top-color: #a99cff; border-radius: 50%; animation: spin .8s linear infinite; }
+      .feedback.success .spinner, .feedback.error .spinner { display: none; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .episodes { margin-top: 16px; }
+      .episode-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 9px; color: #b7c3df; font-size: .85rem; }
+      .episode-list { display: grid; gap: 6px; max-height: 360px; overflow: auto; padding: 4px; }
+      .episode-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 11px; border: 1px solid #263452; border-radius: 9px; background: #0d1528; color: #dfe7fb; font-size: .9rem; }
+      .episode-row input { margin: 2px 0 0; flex: 0 0 auto; }
+      .episode-copy { min-width: 0; flex: 1; }
+      .episode-title { display: block; overflow-wrap: anywhere; }
+      .episode-error { display: block; margin-top: 3px; color: #ff9ead; font-size: .82rem; }
+      .episode-status { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 7px; }
+      .progress-track { height: 6px; overflow: hidden; margin-top: 7px; border-radius: 999px; background: #202b44; }
+      .progress-fill { height: 100%; width: 0; border-radius: inherit; background: #8070ff; transition: width .3s ease; }
+      .progress-fill.is-queued { width: 18%; background: #7f8ba8; }
+      .progress-fill.is-active { width: 36%; background: linear-gradient(90deg, #5849dc, #c2a9ff, #5849dc); background-size: 220% 100%; animation: progress-flow 1.15s linear infinite; }
+      .progress-fill.is-complete { width: 100%; background: #35c995; }
+      .progress-fill.is-failed { width: 100%; background: #d65e74; opacity: .75; }
+      @keyframes progress-flow { to { background-position: -220% 0; } }
+      .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; background: #222d49; color: #bcc8e5; font-size: .72rem; font-weight: 700; text-transform: capitalize; }
+      .badge.completed { background: #123a31; color: #83e5bf; }
+      .badge.failed { background: #421e2a; color: #ff9eae; }
+      .selection-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+      .empty { padding: 34px 20px; color: #a9b5d0; text-align: center; }
+      .empty strong { display: block; margin-bottom: 6px; color: #e6ecfc; font-size: 1rem; }
+      .toast { position: fixed; right: 20px; bottom: 20px; z-index: 5; max-width: min(420px, calc(100% - 40px)); padding: 12px 16px; border: 1px solid #425174; border-radius: 12px; background: #182440; color: #f4f6ff; box-shadow: 0 12px 40px #0008; opacity: 0; transform: translateY(10px); pointer-events: none; transition: .2s; }
+      .toast.visible { opacity: 1; transform: translateY(0); }
+      @media (max-width: 700px) {
+        .shell { width: min(100% - 24px, 600px); padding-top: 28px; }
+        header, .series-top { align-items: flex-start; flex-direction: column; }
+        .status-indicator { align-self: flex-start; }
+        .actions { width: 100%; }
+        .actions button { flex: 1; }
+        .series-card, .add-panel { padding: 16px; }
+        .settings-panel { align-items: flex-start; flex-direction: column; margin-top: -12px; }
+        .episode-toolbar, .selection-actions { align-items: flex-start; flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">▶</div>
+          <div><h1>KissKH Sync</h1><p class="tagline">Your shows, organized and ready for Jellyfin.</p></div>
+        </div>
+        <div class="status-indicator"><span class="dot"></span>Service online</div>
+      </header>
+
+      <section class="panel settings-panel" id="watcher-panel">
+        <div>
+          <h2><span class="dot"></span> Automatic watcher</h2>
+          <div id="watcher-status" class="setting-description">Checking for new episodes and downloading them automatically.</div>
+        </div>
+        <button id="run-watcher" class="primary" type="button">Check all series now</button>
+      </section>
+
+      <section class="panel add-panel">
+        <div class="section-heading"><h2>Add a series</h2><span class="muted">Paste a KissKH series URL</span></div>
+        <form id="add" class="add-form">
+          <input id="url" type="url" placeholder="https://kisskh.is/Drama/…" required />
+          <button class="primary" type="submit">＋ Add series</button>
+        </form>
+      </section>
+
+      <section class="panel settings-panel">
+        <div><h2>Download queue</h2><div class="setting-description">Choose how many episodes may download at once.</div></div>
+        <form id="download-settings" class="setting-controls">
+          <label for="parallel-limit" class="muted">Parallel downloads</label>
+          <select id="parallel-limit" aria-label="Maximum parallel downloads"></select>
+          <button type="submit">Save</button>
+        </form>
+      </section>
+
+      <section>
+        <div class="section-heading series-heading"><h2>Your series</h2><span id="series-count" class="series-count"></span></div>
+        <ul id="list"></ul>
+      </section>
+    </main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const list = document.querySelector('#list');
+      let toastTimer;
+      function notify(message) {
+        const toast = document.querySelector('#toast');
+        toast.textContent = message;
+        toast.classList.add('visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('visible'), 4500);
+      }
+      function makeButton(label, action, kind = '') {
+        const element = document.createElement('button');
+        element.textContent = label;
+        if (kind) element.classList.add(kind);
+        element.onclick = action;
+        return element;
+      }
+      function feedbackFor(id) { return document.querySelector(`#feedback-${id}`); }
+      function setFeedback(id, message, kind = 'working') {
+        const panel = feedbackFor(id);
+        if (!panel) return;
+        panel.replaceChildren();
+        panel.className = `feedback visible ${kind}`;
+        if (kind === 'working') {
+          const spinner = document.createElement('span');
+          spinner.className = 'spinner';
+          panel.append(spinner);
+        }
+        const text = document.createElement('span');
+        text.textContent = message;
+        panel.append(text);
+      }
+      async function api(url, options = {}) {
+        const response = await fetch(url, options);
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail || body);
+          throw new Error(detail || `Request failed (${response.status})`);
+        }
+        return body;
+      }
+      async function load() {
+        try {
+          const series = await api('/api/series');
+          document.querySelector('#series-count').textContent = `${series.length} ${series.length === 1 ? 'show' : 'shows'}`;
+          list.replaceChildren();
+          if (!series.length) {
+            const empty = document.createElement('li');
+            empty.className = 'panel empty';
+            empty.innerHTML = '<strong>No series yet</strong>Add a KissKH URL above to get started.';
+            list.append(empty);
+            return;
+          }
+          for (const item of series) {
+            const card = document.createElement('li');
+            card.className = 'panel series-card';
+            card.id = `series-${item.id}`;
+            const top = document.createElement('div');
+            top.className = 'series-top';
+            const details = document.createElement('div');
+            const title = document.createElement('h3');
+            title.className = 'series-title';
+            title.textContent = item.name;
+            const meta = document.createElement('div');
+            meta.className = 'series-meta';
+            meta.textContent = `Season ${String(item.season).padStart(2, '0')} · ${item.quality} · Last sync: ${item.last_sync_at ? new Date(item.last_sync_at).toLocaleString() : 'Never'}`;
+            details.append(title, meta);
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+            actions.append(
+              makeButton('Discover episodes', () => discover(item.id), 'primary'),
+              makeButton('Download all missing', () => syncSeries(item.id)),
+              makeButton('Episodes ▾', () => toggleEpisodes(item.id), 'subtle'),
+            );
+            actions.lastElementChild.dataset.episodeToggle = 'true';
+            top.append(details, actions);
+            const feedback = document.createElement('div');
+            feedback.id = `feedback-${item.id}`;
+            feedback.className = 'feedback';
+            const episodes = document.createElement('div');
+            episodes.className = 'episodes';
+            episodes.id = `episodes-${item.id}`;
+            episodes.hidden = true;
+            card.append(top, feedback, episodes);
+            list.append(card);
+          }
+        } catch (error) {
+          notify(`Could not load series: ${error.message}`);
+        }
+      }
+      async function loadSettings() {
+        try {
+          const settings = await api('/api/settings');
+          const select = document.querySelector('#parallel-limit');
+          select.replaceChildren();
+          for (let count = 1; count <= 16; count += 1) {
+            const option = document.createElement('option');
+            option.value = count;
+            option.textContent = `${count} ${count === 1 ? 'download' : 'downloads'}`;
+            select.append(option);
+          }
+          select.value = settings.max_concurrent_downloads;
+        } catch (error) { notify(`Could not load settings: ${error.message}`); }
+      }
+      async function loadWatcher() {
+        try {
+          const watcher = await api('/api/watcher');
+          const next = watcher.next_run_at ? new Date(watcher.next_run_at).toLocaleString() : 'soon';
+          document.querySelector('#watcher-status').textContent = watcher.enabled
+            ? `Checks enabled series every ${watcher.interval_minutes} minutes · next check ${next}`
+            : 'Automatic checks are currently stopped.';
+        } catch (error) {
+          document.querySelector('#watcher-status').textContent = `Watcher status unavailable: ${error.message}`;
+        }
+      }
+      async function discover(id) {
+        setFeedback(id, 'Queuing episode discovery…');
+        try {
+          const result = await api(`/api/series/${id}/discover`, { method: 'POST' });
+          setFeedback(id, `Discovery job #${result.job_id} is running. Checking KissKH for episode metadata…`);
+          waitForJob(result.job_id, id, true);
+        } catch (error) {
+          setFeedback(id, `Could not start discovery: ${error.message}`, 'error');
+        }
+      }
+      async function syncSeries(id) {
+        setFeedback(id, 'Queuing sync for all missing episodes…');
+        try {
+          const job = await api(`/api/series/${id}/sync`, { method: 'POST' });
+          setFeedback(id, `Sync job #${job.job_id} is running…`);
+          waitForJob(job.job_id, id, false);
+        } catch (error) {
+          setFeedback(id, `Could not start sync: ${error.message}`, 'error');
+        }
+      }
+      async function toggleEpisodes(id) {
+        const container = document.querySelector(`#episodes-${id}`);
+        const toggle = document.querySelector(`#series-${id} [data-episode-toggle]`);
+        if (!container.hidden) {
+          container.hidden = true;
+          toggle.textContent = 'Episodes ▾';
+          return;
+        }
+        container.hidden = false;
+        toggle.textContent = 'Episodes ▴';
+        await showEpisodes(id);
+      }
+      async function showEpisodes(id) {
+        const container = document.querySelector(`#episodes-${id}`);
+        container.hidden = false;
+        const toggle = document.querySelector(`#series-${id} [data-episode-toggle]`);
+        if (toggle) toggle.textContent = 'Episodes ▴';
+        container.replaceChildren();
+        setFeedback(id, 'Loading saved episode list…');
+        try {
+          const rows = await api(`/api/series/${id}/episodes`);
+          if (!rows.length) {
+            setFeedback(id, 'No episodes are saved yet. Click “Discover episodes” to fetch them from KissKH.', 'error');
+            return;
+          }
+          setFeedback(id, `${rows.length} episode${rows.length === 1 ? '' : 's'} found. Select pending or failed episodes to queue.` , 'success');
+          const toolbar = document.createElement('div');
+          toolbar.className = 'episode-toolbar';
+          const summary = document.createElement('span');
+          summary.textContent = `${rows.filter((row) => row.status === 'completed').length} completed · ${rows.filter((row) => row.status !== 'completed').length} available`;
+          const selectAll = document.createElement('button');
+          selectAll.className = 'subtle';
+          selectAll.textContent = 'Select all available';
+          toolbar.append(summary, selectAll);
+          const episodeList = document.createElement('div');
+          episodeList.className = 'episode-list';
+          const availableBoxes = [];
+          for (const row of rows) {
+            const label = document.createElement('label');
+            label.className = 'episode-row';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = row.id;
+            checkbox.disabled = ['completed', 'downloading', 'queued'].includes(row.status);
+            if (!checkbox.disabled) availableBoxes.push(checkbox);
+            const copy = document.createElement('span');
+            copy.className = 'episode-copy';
+            const title = document.createElement('span');
+            title.className = 'episode-title';
+            title.textContent = `Episode ${row.episode_number}${row.title ? ` — ${row.title}` : ''}`;
+            const statusLine = document.createElement('div');
+            statusLine.className = 'episode-status';
+            const status = document.createElement('span');
+            status.className = `badge episode-badge ${row.status}`;
+            status.textContent = row.status === 'queued' ? `Queued · #${row.queue_position}` : row.status;
+            const hint = document.createElement('span');
+            hint.className = 'muted episode-hint';
+            hint.textContent = progressHint(row.status, row.queue_position);
+            statusLine.append(status, hint);
+            const progress = document.createElement('div');
+            progress.className = 'progress-track';
+            const fill = document.createElement('div');
+            fill.className = `progress-fill ${progressClass(row.status)}`;
+            progress.append(fill);
+            copy.append(title, statusLine, progress);
+            label.dataset.episodeId = row.id;
+            if (row.error) {
+              const error = document.createElement('span');
+              error.className = 'episode-error';
+              error.textContent = row.error;
+              copy.append(error);
+            }
+            label.append(checkbox, copy);
+            episodeList.append(label);
+          }
+          selectAll.onclick = () => {
+            const shouldCheck = availableBoxes.some((box) => !box.checked);
+            availableBoxes.forEach((box) => { box.checked = shouldCheck; });
+            selectAll.textContent = shouldCheck ? 'Clear selection' : 'Select all available';
+          };
+          const footer = document.createElement('div');
+          footer.className = 'selection-actions';
+          const help = document.createElement('span');
+          help.className = 'muted';
+          help.textContent = 'Completed episodes are protected from re-download.';
+          const download = makeButton('Download selected', async () => {
+            const episodeIds = [...episodeList.querySelectorAll('input:checked')].map((box) => Number(box.value));
+            if (!episodeIds.length) {
+              setFeedback(id, 'Choose at least one pending or failed episode first.', 'error');
+              return;
+            }
+            download.disabled = true;
+            setFeedback(id, `Queuing ${episodeIds.length} selected episode${episodeIds.length === 1 ? '' : 's'}…`);
+            try {
+              const result = await api(`/api/series/${id}/episodes/download`, {
+                method: 'POST', headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ episode_ids: episodeIds }),
+              });
+              setFeedback(id, `Download job #${result.job_id} is running…`);
+              waitForJob(result.job_id, id, false);
+            } catch (error) {
+              download.disabled = false;
+              setFeedback(id, `Could not queue selected episodes: ${error.message}`, 'error');
+            }
+          }, 'primary');
+          footer.append(help, download);
+          container.append(toolbar, episodeList, footer);
+        } catch (error) {
+          setFeedback(id, `Could not load episodes: ${error.message}`, 'error');
+        }
+      }
+      function progressClass(status) {
+        return ({ queued: 'is-queued', downloading: 'is-active', completed: 'is-complete', failed: 'is-failed' })[status] || '';
+      }
+      function progressHint(status, position) {
+        if (status === 'queued') return `Waiting · queue #${position}`;
+        if (status === 'downloading') return 'Downloading now';
+        if (status === 'completed') return 'Completed · ready in Jellyfin';
+        if (status === 'failed') return 'Failed · select again to retry';
+        return 'Not queued';
+      }
+      async function refreshEpisodeStatuses(id) {
+        const rows = await api(`/api/series/${id}/episodes`);
+        const container = document.querySelector(`#episodes-${id}`);
+        if (!container) return;
+        const currentRows = container.querySelectorAll('[data-episode-id]');
+        if (currentRows.length !== rows.length) { await showEpisodes(id); return; }
+        for (const row of rows) {
+          const element = container.querySelector(`[data-episode-id="${row.id}"]`);
+          if (!element) continue;
+          element.querySelector('input[type="checkbox"]').disabled =
+            ['completed', 'downloading', 'queued'].includes(row.status);
+          const badge = element.querySelector('.episode-badge');
+          badge.className = `badge episode-badge ${row.status}`;
+          badge.textContent = row.status === 'queued' ? `Queued · #${row.queue_position}` : row.status;
+          element.querySelector('.episode-hint').textContent = progressHint(row.status, row.queue_position);
+          element.querySelector('.progress-fill').className = `progress-fill ${progressClass(row.status)}`;
+          const oldError = element.querySelector('.episode-error');
+          if (row.error && !oldError) {
+            const message = document.createElement('span');
+            message.className = 'episode-error';
+            message.textContent = row.error;
+            element.querySelector('.episode-copy').append(message);
+          } else if (!row.error && oldError) oldError.remove();
+        }
+      }
+      function waitForJob(jobId, seriesId, discovery) {
+        const started = Date.now();
+        const poll = async () => {
+          try {
+            const job = await api(`/api/jobs/${jobId}`);
+            if (job.status === 'completed') {
+              if (discovery) {
+                setFeedback(seriesId, `Discovery complete: ${job.episodes_found} source episodes found.`, 'success');
+              } else {
+                setFeedback(seriesId, `Job complete: ${job.episodes_downloaded} episode(s) downloaded.`, 'success');
+              }
+              await showEpisodes(seriesId);
+              return;
+            }
+            if (job.status === 'failed') {
+              setFeedback(seriesId, `Job failed: ${job.error || 'The sync worker reported an error.'}`, 'error');
+              return;
+            }
+            if (Date.now() - started > 10 * 60 * 1000) {
+              setFeedback(seriesId, `Job #${jobId} is still ${job.status}. Check Jobs or the container logs for details.`, 'error');
+              return;
+            }
+            setFeedback(seriesId, `Job #${jobId} · ${job.status}${discovery ? ' · loading KissKH episode metadata' : ''}…`);
+            if (!discovery) await refreshEpisodeStatuses(seriesId);
+            setTimeout(poll, 1800);
+          } catch (error) {
+            setFeedback(seriesId, `Could not check job status: ${error.message}`, 'error');
+          }
+        };
+        setTimeout(poll, 650);
+      }
+      document.querySelector('#download-settings').onsubmit = async (event) => {
+        event.preventDefault();
+        const button = event.currentTarget.querySelector('button');
+        button.disabled = true;
+        const count = Number(document.querySelector('#parallel-limit').value);
+        try {
+          await api('/api/settings', {
+            method: 'PATCH', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ max_concurrent_downloads: count }),
+          });
+          notify(`Saved: up to ${count} episode${count === 1 ? '' : 's'} download at once.`);
+        } catch (error) { notify(`Could not save download limit: ${error.message}`); }
+        finally { button.disabled = false; }
+      };
+      document.querySelector('#run-watcher').onclick = async (event) => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        button.textContent = 'Queueing checks…';
+        try {
+          const result = await api('/api/watcher/run', { method: 'POST' });
+          notify(result.series_queued
+            ? `Watcher queued checks for ${result.series_queued} enabled series.`
+            : 'No enabled series to check.');
+        } catch (error) {
+          notify(`Could not start watcher: ${error.message}`);
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Check all series now';
+        }
+      };
+      document.querySelector('#add').onsubmit = async (event) => {
+        event.preventDefault();
+        const submit = event.currentTarget.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        try {
+          await api('/api/series', {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ source_url: document.querySelector('#url').value }),
+          });
+          document.querySelector('#url').value = '';
+          notify('Series added. Click Discover episodes to load its episode list.');
+          await load();
+        } catch (error) {
+          notify(`Could not add series: ${error.message}`);
+        } finally {
+          submit.disabled = false;
+        }
+      };
+      load();
+      loadSettings();
+      loadWatcher();
+    </script>
+  </body>
+</html>
