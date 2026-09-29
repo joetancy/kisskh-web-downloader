@@ -1,85 +1,168 @@
 # KissKH Sync
 
-A self-hosted FastAPI application to track authorized KissKH series downloads,
-organize completed media for Jellyfin, and request a library refresh. It does not
-depend on Sonarr or Radarr. The app listens on **9020**.
+KissKH Sync is a self-hosted web app for tracking KissKH series, automatically
+checking for new episodes, downloading missing episodes, organizing them for
+Jellyfin, and requesting a Jellyfin library refresh. It runs as a small FastAPI
+service with a SQLite database and a browser-based dashboard.
 
-> Use only for content you are authorized to download. Keep the web interface on
-> a trusted network; it currently has no user authentication.
+> **Use responsibly:** Download only content you are authorized to access and
+> store. The dashboard has no authentication; expose it only to a trusted LAN or
+> put it behind an authenticated reverse proxy.
 
-## Deploy with Docker Compose
+## Features
 
-On Debian, create storage directories:
+- Discover and track episodes by their KissKH source IDs.
+- Watch enabled series at startup and on a configurable schedule; new episodes
+  are downloaded automatically. **Check all series now** runs the watcher
+  immediately.
+- Choose episodes for manual downloads, or queue all missing episodes for a
+  series. Completed episodes are not downloaded again.
+- See queued, downloading, completed, and failed states for each episode.
+  Download progress is indeterminate while active because the upstream
+  downloader does not provide reliable byte-level progress.
+- Set the maximum number of simultaneous episode downloads in the dashboard
+  (1–16; default 1).
+- Organize media into Jellyfin-readable folders and request a library refresh.
 
-```sh
-mkdir -p /srv/media/appdata/kisskh-sync/data
-mkdir -p /srv/media/data/downloads/kisskh
-mkdir -p /srv/media/data/media/tv
-# Set .env PUID/PGID to the service UID and shared media GID; grant those
-# identities write access to appdata, downloads, and the TV media directory.
-chown -R 1000:1000 /srv/media/appdata/kisskh-sync/data /srv/media/data/downloads/kisskh
+## Quick start with Docker Compose
+
+1. Clone the repository and enter it:
+
+   ```sh
+   git clone https://github.com/joetancy/kisskh-web-downloader.git
+   cd kisskh-web-downloader
+   ```
+
+2. Create the host directories used by the included Compose file. Adjust the
+   paths and IDs for your server and media-library permissions as needed:
+
+   ```sh
+   mkdir -p /srv/media/appdata/kisskh-sync/data
+   mkdir -p /srv/media/data/downloads/kisskh
+   mkdir -p /srv/media/data/media/tv
+   ```
+
+3. Copy the example settings, then set the Jellyfin connection details:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+   Edit `.env` and set `JELLYFIN_API_KEY`. If Jellyfin is not available at
+   `http://jellyfin:8096` on a shared Docker network, set `JELLYFIN_URL` to an
+   address the app can reach. The Jellyfin API key should have permission to
+   refresh the relevant library.
+
+4. Build and start the service:
+
+   ```sh
+   docker compose up -d --build
+   ```
+
+Open **http://<server-ip>:9020**. The container needs write access to its
+database, download directory, and TV library directory. Jellyfin needs read
+access to the same TV media. The included Compose file mounts the host TV folder
+at the same absolute path inside the container; if you change that mapping,
+update `MEDIA_DIR` to match the container path.
+
+### Use the published image
+
+The GitHub Actions workflow publishes
+`ghcr.io/joetancy/kisskh-web-downloader:latest` from the default branch, plus
+branch and version-tag images. To use the published image instead of building
+locally, replace `build: .` in the service with:
+
+```yaml
+image: ghcr.io/joetancy/kisskh-web-downloader:latest
 ```
 
-Set `JELLYFIN_URL` and `JELLYFIN_API_KEY` in `.env` (copy `.env.example` as a
-starting point), then run:
+Then start or update it with `docker compose up -d`.
+
+## Add and watch a series
+
+Paste a KissKH series URL into the dashboard. Use **Discover episodes** to load
+its episode list. Use **Download all missing** to queue every episode not
+already completed, or expand **Episodes** to select specific episodes.
+
+Series are enabled by default. The watcher checks enabled series immediately on
+startup and every six hours by default. Use **Check all series now** for an
+immediate check; newly discovered episodes are then downloaded automatically.
+Disable a series to exclude it from watcher scans and automatic downloads. Set
+`SYNC_INTERVAL_MINUTES` to change the schedule.
+
+The dashboard's **Download queue** setting controls simultaneous episode
+downloads. It defaults to 1, accepts values from 1 through 16, is saved in
+SQLite, and takes effect without restarting the service.
+
+## Configuration
+
+The deployment Compose file and `.env.example` provide these settings:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `PUID` / `PGID` | `1000` / `1000` | User and group for the container process |
+| `DEFAULT_QUALITY` | `1080p` | Quality used for newly added series |
+| `DEFAULT_SUBTITLE_LANGUAGE` | `en` | Subtitle language preference |
+| `SYNC_INTERVAL_MINUTES` | `360` | Automatic watcher interval in minutes |
+| `MAX_CONCURRENT_DOWNLOADS` | `1` | Initial simultaneous-download limit; can be changed in the UI |
+| `JELLYFIN_URL` | `http://jellyfin:8096` | Jellyfin base URL reachable from the app container |
+| `JELLYFIN_API_KEY` | empty | Optional key for refreshing the Jellyfin library |
+| `JELLYFIN_LIBRARY_ID` | empty | Optional library ID to refresh |
+| `KISSKH_STREAM_KEY` / `KISSKH_SUB_KEY` | empty | Optional KissKH stream/subtitle keys |
+
+Keep `.env` and API keys private. If the app and Jellyfin are in separate Compose
+projects, attach both to a shared external Docker network and configure
+`JELLYFIN_URL` to use Jellyfin's reachable service name.
+
+## Data and troubleshooting
+
+The SQLite database is stored at `/data/kisskh.db`; back it up before upgrades.
+With the included Compose file, its host directory is
+`/srv/media/appdata/kisskh-sync/data`. Downloads are staged under the configured
+download directory and organized media is written to the TV library directory.
+
+Useful checks:
 
 ```sh
-docker compose up -d --build
+curl http://localhost:9020/api/health
+docker compose ps
+docker compose logs -f kisskh-sync
 ```
 
-Open `http://<server-ip>:9020`. The container needs write access to the
-downloads and TV directories, and Jellyfin must have read access to
-`/srv/media/data/media/tv`. Configure a Jellyfin API key with permission to
-refresh libraries. If Jellyfin is in a different Compose project, attach this
-service and Jellyfin to a shared external Docker network and set `JELLYFIN_URL`
-to its reachable service name. Jellyfin is not required in this Compose file.
-The app mounts the media folder at `/srv/media/data/media/tv` inside its
-container as well, matching Jellyfin's configured library path.
+If a download fails, its error appears in the episode list; select it again or
+sync the series to retry. The status endpoint `/api/watcher` reports whether the
+watcher is running and its next scheduled check.
 
-## Add and sync a series
+## API overview
 
-Add a KissKH series URL in the UI. The service discovers episodes during Sync,
-tracks them by source episode ID in SQLite, and skips completed episodes. Set
-season, quality, subtitle language, or a destination folder with the REST API
-(`PATCH /api/series/{id}`). Scheduled synchronization defaults to every six
-hours and is configured with `SYNC_INTERVAL_MINUTES`. The automatic watcher
-checks enabled series at startup and on that interval; use **Check all series
-now** in the UI to immediately check and download new episodes. Newly discovered
-episodes for enabled series are downloaded automatically; completed episodes
-are skipped. Disable a series to exclude it from watcher downloads. Manual operations are
-`POST /api/series/{id}/sync` and `/rescan`; both return a job ID immediately.
-The **Download queue** control sets the maximum number of simultaneous episode
-downloads (1 by default, up to 16); its value is saved in SQLite and takes
-effect without restarting the container.
+The interactive API documentation is available at **/docs**.
 
-## Downloader adapter
+| Method and path | Purpose |
+| --- | --- |
+| `GET /api/health` | Health check |
+| `GET /api/watcher` / `POST /api/watcher/run` | Watcher status / immediate check |
+| `GET /api/settings` / `PATCH /api/settings` | Read or update download concurrency |
+| `GET, POST /api/series` | List or add a series |
+| `GET, PATCH, DELETE /api/series/{id}` | Read, update, or remove a series |
+| `POST /api/series/{id}/discover` | Discover episode metadata only |
+| `POST /api/series/{id}/sync` | Sync and download all missing episodes |
+| `GET /api/series/{id}/episodes` | List episode status and queue position |
+| `POST /api/series/{id}/episodes/download` | Download selected episode IDs |
+| `GET /api/jobs` / `GET /api/jobs/{id}` | List jobs or inspect one job |
 
-The adapter uses the public Python classes from
-[`debakarr/kisskh-dl`](https://github.com/debakarr/kisskh-dl) (`KissKHApi` and
-`Downloader`) rather than assuming a CLI protocol. The Docker image installs
-`kisskh-downloader` and Playwright Chromium. The library can use
-`KISSKH_STREAM_KEY` and `KISSKH_SUB_KEY`, or its Playwright key flow when needed.
-Keys should be kept private and are not included in API responses/logs.
+## Development
 
-## Configuration and operation
+Requires Python 3.13. Install the project and development dependencies, then run
+the service and tests:
 
-Important settings are in `.env.example`. Persistent SQLite storage is
-`/data/kisskh.db`; back it up by stopping the container and copying
-`/srv/media/appdata/kisskh-sync/data`. The container exposes only port 9020.
-Check `curl http://localhost:9020/api/health`, `docker compose logs -f
-kisskh-sync`, and `docker compose ps` when troubleshooting. Keep Jellyfin's API
-key private; API responses do not include configured secrets.
+```sh
+pip install -e '.[dev]'
+uvicorn app.main:app --host 0.0.0.0 --port 9020
+pytest
+```
 
-Upgrade by pulling/building the new image with `docker compose up -d --build`;
-back up the database first. For local development, install Python 3.13 and run
-`pip install -e '.[dev]'`, `uvicorn app.main:app --host 0.0.0.0 --port 9020`.
-
-The `Docker image` GitHub Actions workflow builds on pull requests and publishes
-`ghcr.io/<owner>/<repository>` on pushes to `main` and version tags (`v*`).
-
-## Current MVP limitations
-
-The third-party downloader is an evolving external dependency; no live KissKH
-request is made by automated tests. Verify current behavior on your deployment.
-The UI is intended for a trusted LAN and has no authentication. A failed episode
-is visible in the episode list and can be retried by syncing its series again.
+The Docker image installs `kisskh-downloader` and Playwright Chromium. The
+adapter uses the library's public Python API; because the upstream dependency
+can change, automated tests do not make live KissKH requests. GitHub Actions
+runs the tests and builds the image for pull requests, and publishes the image
+for pushes to `main` and version tags (`v*`).
