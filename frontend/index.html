@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f8fafc" />
     <title>KissKH Sync</title>
+    <script>
+      try {
+        if (localStorage.getItem('kisskh-theme') === 'dark') {
+          document.documentElement.dataset.theme = 'dark';
+          document.querySelector('meta[name="theme-color"]').content = '#09090b';
+        }
+      } catch (_) {}
+    </script>
     <style>
       :root {
         color-scheme: light;
@@ -23,16 +31,31 @@
         --secondary: #f4f4f5;
         --ring: #a1a1aa;
       }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        color: #fafafa;
+        background: #09090b;
+        --background: #09090b;
+        --foreground: #fafafa;
+        --card: #09090b;
+        --muted: #a1a1aa;
+        --border: #27272a;
+        --input: #27272a;
+        --primary: #fafafa;
+        --primary-foreground: #18181b;
+        --secondary: #27272a;
+        --ring: #71717a;
+      }
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100vh; background: var(--background); color: var(--foreground); }
       button, input, select { font: inherit; }
       button {
         display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
         min-height: 36px; padding: .48rem .8rem; border: 1px solid var(--input); border-radius: 7px;
-        background: #fff; color: #18181b; font-size: .875rem; font-weight: 500; white-space: nowrap;
+        background: var(--card); color: var(--foreground); font-size: .875rem; font-weight: 500; white-space: nowrap;
         cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s;
       }
-      button:hover:not(:disabled) { background: #f4f4f5; }
+      button:hover:not(:disabled) { background: var(--secondary); }
       button:focus-visible, input:focus-visible, select:focus-visible { outline: none; box-shadow: 0 0 0 3px #a1a1aa55; }
       button:disabled { cursor: wait; opacity: .55; }
       button.primary { border-color: var(--primary); background: var(--primary); color: var(--primary-foreground); }
@@ -40,11 +63,11 @@
       button.subtle { border-color: transparent; background: transparent; }
       input[type="url"] {
         width: min(100%, 650px); min-height: 40px; padding: .55rem .75rem;
-        border: 1px solid var(--input); border-radius: 7px; outline: none; background: #fff; color: #18181b;
+        border: 1px solid var(--input); border-radius: 7px; outline: none; background: var(--card); color: var(--foreground);
         font-size: .875rem; box-shadow: 0 1px 2px #00000008;
       }
       input[type="url"]::placeholder { color: #a1a1aa; }
-      input[type="checkbox"] { width: 16px; height: 16px; accent-color: #18181b; }
+      input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--foreground); }
       .shell { width: min(1080px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 80px; }
       header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 27px; margin-bottom: 28px; border-bottom: 1px solid var(--border); }
       .brand { display: flex; align-items: center; gap: 12px; }
@@ -52,14 +75,21 @@
       h1 { margin: 0; font-size: 1.25rem; font-weight: 650; letter-spacing: -.035em; }
       .tagline, .muted { color: var(--muted); }
       .tagline { margin: 3px 0 0; font-size: .82rem; }
+      .header-controls { display: flex; align-items: center; gap: 18px; }
       .status-indicator { display: flex; align-items: center; gap: 8px; color: #52525b; font-size: .8rem; }
+      .theme-toggle { gap: 8px; min-height: auto; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: .8rem; }
+      .theme-toggle:hover:not(:disabled) { background: transparent; color: var(--foreground); }
+      .switch-track { position: relative; width: 32px; height: 18px; flex: 0 0 32px; border-radius: 999px; background: #d4d4d8; transition: background .18s; }
+      .switch-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 2px #0003; transition: transform .18s; }
+      .theme-toggle[aria-checked="true"] .switch-track { background: #71717a; }
+      .theme-toggle[aria-checked="true"] .switch-thumb { transform: translateX(14px); }
       .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
       .panel { border: 1px solid var(--border); border-radius: 9px; background: var(--card); box-shadow: 0 1px 2px #00000008; }
       .add-panel { padding: 20px; margin-bottom: 16px; }
       .settings-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; margin: 0 0 16px; }
       .setting-description { margin-top: 4px; color: var(--muted); font-size: .8rem; }
       .setting-controls { display: flex; align-items: center; gap: 9px; }
-      select { min-height: 36px; padding: .4rem 2rem .4rem .7rem; border: 1px solid var(--input); border-radius: 7px; background: #fff; color: #18181b; font-size: .875rem; }
+      select { min-height: 36px; padding: .4rem 2rem .4rem .7rem; border: 1px solid var(--input); border-radius: 7px; background: var(--card); color: var(--foreground); font-size: .875rem; }
       .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 13px; }
       h2 { margin: 0; font-size: .96rem; font-weight: 600; letter-spacing: -.02em; }
       .add-form { display: flex; flex-wrap: wrap; gap: 9px; }
@@ -72,7 +102,7 @@
       .series-title { margin: 1px 0 0; font-size: .98rem; font-weight: 600; letter-spacing: -.015em; overflow-wrap: anywhere; }
       .series-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; color: var(--muted); font-size: .78rem; }
       .actions { display: flex; flex-wrap: wrap; gap: 6px; }
-      .feedback { display: none; align-items: center; gap: 9px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: #fafafa; color: #52525b; font-size: .84rem; }
+      .feedback { display: none; align-items: center; gap: 9px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--background); color: var(--muted); font-size: .84rem; }
       .feedback.visible { display: flex; }
       .feedback.error { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
       .feedback.success { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
@@ -82,7 +112,7 @@
       .episodes { margin-top: 15px; padding-top: 14px; border-top: 1px solid var(--border); }
       .episode-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; color: #52525b; font-size: .8rem; }
       .episode-list { display: grid; gap: 6px; max-height: 360px; overflow: auto; padding: 1px; }
-      .episode-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 7px; background: #fff; color: #27272a; font-size: .84rem; }
+      .episode-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--card); color: var(--foreground); font-size: .84rem; }
       .episode-row input { margin: 2px 0 0; flex: 0 0 auto; }
       .episode-copy { min-width: 0; flex: 1; }
       .episode-title { display: block; overflow-wrap: anywhere; }
@@ -101,11 +131,27 @@
       .selection-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
       .empty { padding: 36px 20px; color: var(--muted); text-align: center; font-size: .875rem; }
       .empty strong { display: block; margin-bottom: 5px; color: #18181b; font-size: .95rem; font-weight: 600; }
-      .toast { position: fixed; right: 20px; bottom: 20px; z-index: 5; max-width: min(420px, calc(100% - 40px)); padding: 12px 15px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: #18181b; box-shadow: 0 8px 24px #00000012; font-size: .875rem; opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s; }
+      .toast { position: fixed; right: 20px; bottom: 20px; z-index: 5; max-width: min(420px, calc(100% - 40px)); padding: 12px 15px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--foreground); box-shadow: 0 8px 24px #00000012; font-size: .875rem; opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s; }
+      :root[data-theme="dark"] button.primary:hover:not(:disabled) { background: #e4e4e7; }
+      :root[data-theme="dark"] .brand-icon { background: #fafafa; color: #18181b; }
+      :root[data-theme="dark"] .status-indicator { color: #a1a1aa; }
+      :root[data-theme="dark"] .feedback.error { border-color: #7f1d1d; background: #1c0b0b; color: #fca5a5; }
+      :root[data-theme="dark"] .feedback.success { border-color: #14532d; background: #07170d; color: #86efac; }
+      :root[data-theme="dark"] .feedback .spinner { border-color: #3f3f46; border-top-color: #fafafa; }
+      :root[data-theme="dark"] .episode-toolbar { color: #d4d4d8; }
+      :root[data-theme="dark"] .episode-error { color: #fca5a5; }
+      :root[data-theme="dark"] .progress-track { background: #27272a; }
+      :root[data-theme="dark"] .progress-fill.is-queued { background: #71717a; }
+      :root[data-theme="dark"] .progress-fill.is-active { background: linear-gradient(90deg, #71717a, #d4d4d8, #71717a); }
+      :root[data-theme="dark"] .badge { background: #27272a; color: #d4d4d8; }
+      :root[data-theme="dark"] .badge.completed { background: #052e16; color: #86efac; }
+      :root[data-theme="dark"] .badge.failed { background: #450a0a; color: #fca5a5; }
+      :root[data-theme="dark"] .empty strong { color: var(--foreground); }
       .toast.visible { opacity: 1; transform: translateY(0); }
       @media (max-width: 700px) {
         .shell { width: min(100% - 24px, 600px); padding-top: 24px; }
         header, .series-top { align-items: flex-start; flex-direction: column; }
+        .header-controls { width: 100%; justify-content: space-between; }
         .status-indicator { align-self: flex-start; }
         .actions { width: 100%; }
         .actions button { flex: 1; }
@@ -123,7 +169,12 @@
           <div class="brand-icon" aria-hidden="true">▶</div>
           <div><h1>KissKH Sync</h1><p class="tagline">Your shows, organized and ready for Jellyfin.</p></div>
         </div>
-        <div class="status-indicator"><span class="dot"></span>Service online</div>
+        <div class="header-controls">
+          <button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode">
+            <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span>Dark mode</span>
+          </button>
+          <div class="status-indicator"><span class="dot"></span>Service online</div>
+        </div>
       </header>
 
       <section class="panel settings-panel" id="watcher-panel">
@@ -160,6 +211,21 @@
 
     <script>
       const list = document.querySelector('#list');
+      const themeToggle = document.querySelector('#theme-toggle');
+      function setTheme(theme, persist = false) {
+        const isDark = theme === 'dark';
+        document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+        themeToggle.setAttribute('aria-checked', String(isDark));
+        themeToggle.setAttribute('aria-label', isDark ? 'Dark mode enabled' : 'Dark mode disabled');
+        document.querySelector('meta[name="theme-color"]').content = isDark ? '#09090b' : '#f8fafc';
+        if (persist) {
+          try { localStorage.setItem('kisskh-theme', isDark ? 'dark' : 'light'); } catch (_) {}
+        }
+      }
+      setTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+      themeToggle.addEventListener('click', () => {
+        setTheme(themeToggle.getAttribute('aria-checked') === 'true' ? 'light' : 'dark', true);
+      });
       let toastTimer;
       function notify(message) {
         const toast = document.querySelector('#toast');
