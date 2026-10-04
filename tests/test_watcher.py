@@ -13,8 +13,12 @@ async def test_watcher_scans_all_series_and_checkbox_only_controls_auto_download
     with test_sessions() as db:
         db.add_all(
             [
-                Series(name="Automatic", source_url="https://example.test/automatic", enabled=True),
-                Series(name="Discover only", source_url="https://example.test/discover", enabled=False),
+                Series(
+                    name="Automatic", source_url="https://example.test/automatic", enabled=True
+                ),
+                Series(
+                    name="Discover only", source_url="https://example.test/discover", enabled=False
+                ),
             ]
         )
         db.commit()

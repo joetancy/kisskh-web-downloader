@@ -223,7 +223,9 @@ def schedule_sync(
         db.commit()
         db.refresh(job)
         job_id = job.id
-    task = loop.create_task(sync_series(series_id, job_id, selected_episode_ids, discover_only, new_episodes_only))
+    task = loop.create_task(
+        sync_series(series_id, job_id, selected_episode_ids, discover_only, new_episodes_only)
+    )
     _tasks.add(task)
     task.add_done_callback(_task_finished)
     return job_id
