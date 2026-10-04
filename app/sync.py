@@ -184,10 +184,14 @@ async def sync_series(
                 if _episode_tasks.get(episode_id) is task:
                     _episode_tasks.pop(episode_id, None)
 
-        added_results = await asyncio.gather(
-            *(download_tracked(episode_id, item) for episode_id, item in queue),
-            return_exceptions=True,
-        ) if queue else []
+        added_results = (
+            await asyncio.gather(
+                *(download_tracked(episode_id, item) for episode_id, item in queue),
+                return_exceptions=True,
+            )
+            if queue
+            else []
+        )
         added = sum(result is True for result in added_results)
 
         with SessionLocal() as db:
