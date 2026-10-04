@@ -7,7 +7,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import AppSetting, Episode, Series, SyncJob
 from app.scheduler import run_enabled_series, watcher_status
-from app.sync import configure_download_limit, schedule_sync
+from app.sync import configure_download_limit, schedule_sync, stop_episode
 
 router = APIRouter(prefix="/api")
 
@@ -204,6 +204,20 @@ def episodes(series_id: int, db: Session = Depends(get_db)):
         }
         for row in rows
     ]
+
+
+@router.post("/episodes/{episode_id}/stop")
+def stop_download(episode_id: int, db: Session = Depends(get_db)):
+    row = db.get(Episode, episode_id)
+    if not row:
+        raise HTTPException(404, "Episode not found")
+    if row.status not in {"queued", "downloading"}:
+        raise HTTPException(409, "Episode is not queued or downloading")
+    stop_episode(episode_id)
+    row.status = "stopped"
+    row.error = None
+    db.commit()
+    return {"status": "stopped"}
 
 
 @router.get("/jobs")

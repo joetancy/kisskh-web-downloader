@@ -13,12 +13,15 @@ scheduler = AsyncIOScheduler()
 
 async def run_enabled_series() -> int:
     with SessionLocal() as db:
-        series_ids = list(db.scalars(select(Series.id).where(Series.enabled.is_(True))))
-    for series_id in series_ids:
-        # Sync all missing episodes for enabled series; completed episodes are
-        # skipped by sync_series, so repeated watcher scans are safe.
-        schedule_sync(series_id)
-    return len(series_ids)
+        series_rows = list(db.execute(select(Series.id, Series.enabled)))
+    for series_id, auto_download in series_rows:
+        # Every series is scanned; the checkbox only controls new downloads.
+        schedule_sync(
+            series_id,
+            discover_only=not auto_download,
+            new_episodes_only=auto_download,
+        )
+    return len(series_rows)
 
 
 def start_scheduler() -> None:

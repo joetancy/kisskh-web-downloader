@@ -12,6 +12,7 @@ from app.services.organizer import organize
 
 _locks: dict[int, asyncio.Lock] = {}
 _tasks: set[asyncio.Task] = set()
+_episode_tasks: dict[int, asyncio.Task] = {}
 
 
 class DownloadLimiter:
@@ -94,6 +95,8 @@ async def _download_one(
                     episode.downloaded_at = datetime.now(UTC)
                     db.commit()
             return True
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:
             with SessionLocal() as db:
                 episode = db.get(Episode, episode_id)
@@ -109,6 +112,7 @@ async def sync_series(
     job_id: int | None = None,
     selected_episode_ids: set[int] | None = None,
     discover_only: bool = False,
+    new_episodes_only: bool = False,
 ) -> None:
     lock = _locks.setdefault(series_id, asyncio.Lock())
     async with lock:
@@ -138,6 +142,7 @@ async def sync_series(
                 }
                 for item in discovered:
                     episode = existing.get(item.source_episode_id)
+                    is_new = episode is None
                     if episode is None:
                         episode = Episode(
                             series_id=series_id,
@@ -151,6 +156,8 @@ async def sync_series(
                         db.flush()
                         existing[item.source_episode_id] = episode
                     if discover_only or episode.status == "completed":
+                        continue
+                    if new_episodes_only and not is_new:
                         continue
                     if selected_episode_ids is not None and episode.id not in selected_episode_ids:
                         continue
@@ -167,17 +174,21 @@ async def sync_series(
                 db.commit()
                 return
 
-        added_results = (
-            await asyncio.gather(
-                *(
-                    _download_one(client, series_id, episode_id, item, job_id or 0)
-                    for episode_id, item in queue
-                )
-            )
-            if queue
-            else []
-        )
-        added = sum(added_results)
+        async def download_tracked(episode_id: int, item: EpisodeMetadata) -> bool:
+            task = asyncio.current_task()
+            if task:
+                _episode_tasks[episode_id] = task
+            try:
+                return await _download_one(client, series_id, episode_id, item, job_id or 0)
+            finally:
+                if _episode_tasks.get(episode_id) is task:
+                    _episode_tasks.pop(episode_id, None)
+
+        added_results = await asyncio.gather(
+            *(download_tracked(episode_id, item) for episode_id, item in queue),
+            return_exceptions=True,
+        ) if queue else []
+        added = sum(result is True for result in added_results)
 
         with SessionLocal() as db:
             job = db.get(SyncJob, job_id) if job_id else None
@@ -203,6 +214,7 @@ def schedule_sync(
     series_id: int,
     selected_episode_ids: set[int] | None = None,
     discover_only: bool = False,
+    new_episodes_only: bool = False,
 ) -> int:
     loop = asyncio.get_running_loop()
     with SessionLocal() as db:
@@ -211,7 +223,15 @@ def schedule_sync(
         db.commit()
         db.refresh(job)
         job_id = job.id
-    task = loop.create_task(sync_series(series_id, job_id, selected_episode_ids, discover_only))
+    task = loop.create_task(sync_series(series_id, job_id, selected_episode_ids, discover_only, new_episodes_only))
     _tasks.add(task)
     task.add_done_callback(_task_finished)
     return job_id
+
+
+def stop_episode(episode_id: int) -> bool:
+    task = _episode_tasks.get(episode_id)
+    if task and not task.done():
+        task.cancel()
+        return True
+    return False

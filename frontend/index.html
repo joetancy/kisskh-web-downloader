@@ -287,10 +287,26 @@
             const title = document.createElement('h3');
             title.className = 'series-title';
             title.textContent = item.name;
+            const autoLabel = document.createElement('label');
+            autoLabel.className = 'muted';
+            const autoDownload = document.createElement('input');
+            autoDownload.type = 'checkbox';
+            autoDownload.checked = item.enabled;
+            autoDownload.setAttribute('aria-label', `Automatically download new episodes of ${item.name}`);
+            autoDownload.onchange = async () => {
+              autoDownload.disabled = true;
+              try {
+                await api(`/api/series/${item.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ enabled: autoDownload.checked }) });
+              } catch (error) {
+                autoDownload.checked = !autoDownload.checked;
+                notify(`Could not update automatic downloads: ${error.message}`);
+              } finally { autoDownload.disabled = false; }
+            };
+            autoLabel.append(autoDownload, document.createTextNode(' Automatically download new episodes'));
             const meta = document.createElement('div');
             meta.className = 'series-meta';
             meta.textContent = `Season ${String(item.season).padStart(2, '0')} · ${item.quality} · Last sync: ${item.last_sync_at ? new Date(item.last_sync_at).toLocaleString() : 'Never'}`;
-            details.append(title, meta);
+            details.append(title, autoLabel, meta);
             const actions = document.createElement('div');
             actions.className = 'actions';
             actions.append(
@@ -333,7 +349,7 @@
           const watcher = await api('/api/watcher');
           const next = watcher.next_run_at ? new Date(watcher.next_run_at).toLocaleString() : 'soon';
           document.querySelector('#watcher-status').textContent = watcher.enabled
-            ? `Checks enabled series every ${watcher.interval_minutes} minutes · next check ${next}`
+            ? `Checks all series every ${watcher.interval_minutes} minutes · next check ${next}`
             : 'Automatic checks are currently stopped.';
         } catch (error) {
           document.querySelector('#watcher-status').textContent = `Watcher status unavailable: ${error.message}`;
@@ -418,6 +434,16 @@
             hint.className = 'muted episode-hint';
             hint.textContent = progressHint(row.status, row.queue_position);
             statusLine.append(status, hint);
+            if (['queued', 'downloading'].includes(row.status)) {
+              const stop = makeButton('Stop', async () => {
+                stop.disabled = true;
+                try {
+                  await api(`/api/episodes/${row.id}/stop`, { method: 'POST' });
+                  await showEpisodes(id);
+                } catch (error) { stop.disabled = false; notify(`Could not stop download: ${error.message}`); }
+              }, 'subtle');
+              statusLine.append(stop);
+            }
             const progress = document.createElement('div');
             progress.className = 'progress-track';
             const fill = document.createElement('div');
@@ -425,6 +451,7 @@
             progress.append(fill);
             copy.append(title, statusLine, progress);
             label.dataset.episodeId = row.id;
+            label.dataset.status = row.status;
             if (row.error) {
               const error = document.createElement('span');
               error.className = 'episode-error';
@@ -489,6 +516,7 @@
         for (const row of rows) {
           const element = container.querySelector(`[data-episode-id="${row.id}"]`);
           if (!element) continue;
+          if (element.dataset.status !== row.status) { await showEpisodes(id); return; }
           element.querySelector('input[type="checkbox"]').disabled =
             ['completed', 'downloading', 'queued'].includes(row.status);
           const badge = element.querySelector('.episode-badge');
@@ -557,8 +585,8 @@
         try {
           const result = await api('/api/watcher/run', { method: 'POST' });
           notify(result.series_queued
-            ? `Watcher queued checks for ${result.series_queued} enabled series.`
-            : 'No enabled series to check.');
+            ? `Watcher queued checks for ${result.series_queued} series.`
+            : 'No series to check.');
         } catch (error) {
           notify(`Could not start watcher: ${error.message}`);
         } finally {

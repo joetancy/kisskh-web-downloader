@@ -84,10 +84,13 @@ Paste a KissKH series URL into the dashboard. Use **Discover episodes** to load
 its episode list. Use **Download all missing** to queue every episode not
 already completed, or expand **Episodes** to select specific episodes.
 
-Series are enabled by default. The watcher checks enabled series immediately on
-startup and every six hours by default. Use **Check all series now** for an
-immediate check; newly discovered episodes are then downloaded automatically.
-Disable a series to exclude it from watcher scans and automatic downloads. Set
+The watcher checks every series immediately on startup and every six hours by
+default, and discovers all episodes. Check **Automatically download new
+episodes** to also download episodes that are new to the local episode list.
+With the checkbox off, discovery still runs and episodes remain available for
+manual downloads. Previously discovered missing episodes are not automatically
+downloaded. Use **Download all missing** or select episodes for manual downloads. Use the
+**Stop** action beside a queued or downloading episode to stop it. Set
 `SYNC_INTERVAL_MINUTES` to change the schedule.
 
 The dashboard's **Download queue** setting controls simultaneous episode
@@ -147,6 +150,7 @@ The interactive API documentation is available at **/docs**.
 | `POST /api/series/{id}/discover` | Discover episode metadata only |
 | `POST /api/series/{id}/sync` | Sync and download all missing episodes |
 | `GET /api/series/{id}/episodes` | List episode status and queue position |
+| `POST /api/episodes/{id}/stop` | Stop a queued or active episode download |
 | `POST /api/series/{id}/episodes/download` | Download selected episode IDs |
 | `GET /api/jobs` / `GET /api/jobs/{id}` | List jobs or inspect one job |
 
