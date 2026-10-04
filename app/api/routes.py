@@ -1,7 +1,9 @@
+import re
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -141,6 +143,65 @@ def delete_series(series_id: int, db: Session = Depends(get_db)):
     row = db.get(Series, series_id)
     if not row:
         raise HTTPException(404, "Series not found")
+    _require_idle_series(series_id, db)
+    db.execute(sql_delete(SyncJob).where(SyncJob.series_id == series_id))
+    db.delete(row)
+    db.commit()
+
+
+def _require_idle_series(series_id: int, db: Session) -> None:
+    active_job = db.scalar(
+        select(SyncJob.id).where(
+            SyncJob.series_id == series_id,
+            SyncJob.status.in_({"queued", "running"}),
+        )
+    )
+    if active_job:
+        raise HTTPException(
+            409, "Wait for active series jobs to finish before removing this series"
+        )
+
+
+def _episode_files(row: Episode) -> list[Path]:
+    if not row.video_path:
+        return []
+    video = Path(row.video_path).resolve()
+    match = re.fullmatch(r"(?P<show>.+) - S(?P<season>\d{2})E(?P<episode>\d+)", video.stem)
+    if (
+        not match
+        or int(match.group("episode")) != row.episode_number
+        or video.parent.name != f"Season {match.group('season')}"
+        or video.parent.parent.name != match.group("show")
+    ):
+        raise HTTPException(400, "Episode video path does not match the organized media layout")
+
+    files = [video]
+    if row.subtitle_path:
+        subtitle = Path(row.subtitle_path).resolve()
+        if (
+            subtitle.parent != video.parent
+            or not subtitle.name.startswith(f"{video.stem}.")
+            or subtitle.suffix.lower() != ".srt"
+        ):
+            raise HTTPException(400, "Episode subtitle path does not match its video")
+        files.append(subtitle)
+    return files
+
+
+@router.delete("/series/{series_id}/files", status_code=204)
+def delete_series_and_files(series_id: int, db: Session = Depends(get_db)):
+    row = db.get(Series, series_id)
+    if not row:
+        raise HTTPException(404, "Series not found")
+    _require_idle_series(series_id, db)
+    episodes = list(db.scalars(select(Episode).where(Episode.series_id == series_id)))
+    files = {path for episode in episodes for path in _episode_files(episode)}
+    try:
+        for path in files:
+            path.unlink(missing_ok=True)
+    except OSError as exc:
+        raise HTTPException(500, "Could not delete all series media files") from exc
+    db.execute(sql_delete(SyncJob).where(SyncJob.series_id == series_id))
     db.delete(row)
     db.commit()
 
@@ -232,10 +293,9 @@ def delete_episode_files(episode_id: int, db: Session = Depends(get_db)):
     if row.status != "completed":
         raise HTTPException(409, "Episode has no completed download to delete")
 
-    media_root = get_settings().media_dir.resolve()
-    files = [Path(path).resolve() for path in (row.video_path, row.subtitle_path) if path]
-    if any(not path.is_relative_to(media_root) for path in files):
-        raise HTTPException(400, "Episode file is outside the configured media directory")
+    if not row.video_path:
+        raise HTTPException(409, "Episode has no saved video path")
+    files = _episode_files(row)
     try:
         for path in files:
             path.unlink(missing_ok=True)

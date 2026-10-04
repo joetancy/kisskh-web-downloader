@@ -313,8 +313,10 @@
               makeButton('Discover episodes', () => discover(item.id), 'primary'),
               makeButton('Download all missing', () => syncSeries(item.id)),
               makeButton('Episodes ▾', () => toggleEpisodes(item.id), 'subtle'),
+              makeButton('Remove series', () => removeSeries(item.id, item.name), 'subtle'),
+              makeButton('Remove + delete files', () => removeSeries(item.id, item.name, true), 'subtle'),
             );
-            actions.lastElementChild.dataset.episodeToggle = 'true';
+            actions.querySelectorAll('button')[2].dataset.episodeToggle = 'true';
             top.append(details, actions);
             const feedback = document.createElement('div');
             feedback.id = `feedback-${item.id}`;
@@ -373,6 +375,19 @@
           waitForJob(job.job_id, id, false);
         } catch (error) {
           setFeedback(id, `Could not start sync: ${error.message}`, 'error');
+        }
+      }
+      async function removeSeries(id, name, deleteFiles = false) {
+        const message = deleteFiles
+          ? `Remove ${name}, its tracked episode history, and all downloaded episode video and subtitle files? This cannot be undone.`
+          : `Remove ${name} and its tracked episode history? Downloaded media files will stay on disk.`;
+        if (!window.confirm(message)) return;
+        try {
+          await api(`/api/series/${id}${deleteFiles ? '/files' : ''}`, { method: 'DELETE' });
+          notify(deleteFiles ? `${name} and its tracked files were removed.` : `${name} removed. Downloaded media files were kept.`);
+          await load();
+        } catch (error) {
+          notify(`Could not remove series: ${error.message}`);
         }
       }
       async function toggleEpisodes(id) {

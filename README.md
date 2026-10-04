@@ -93,6 +93,12 @@ downloaded. Use **Download all missing** or select episodes for manual downloads
 **Stop** action beside a queued or downloading episode to stop it. Set
 `SYNC_INTERVAL_MINUTES` to change the schedule.
 
+Use **Remove series** to remove a series and its tracked episode history.
+Downloaded media files are kept on disk, and active series jobs must finish
+before the series can be removed.
+Use **Remove + delete files** to also delete the video and subtitle files
+recorded for its episodes.
+
 For a completed episode, use **Delete files** to remove its downloaded video
 and subtitle from the media directory. The episode remains in the list as
 pending and can be downloaded manually again.
@@ -151,6 +157,7 @@ The interactive API documentation is available at **/docs**.
 | `GET /api/settings` / `PATCH /api/settings` | Read or update download concurrency |
 | `GET, POST /api/series` | List or add a series |
 | `GET, PATCH, DELETE /api/series/{id}` | Read, update, or remove a series |
+| `DELETE /api/series/{id}/files` | Remove a series and its tracked episode media files |
 | `POST /api/series/{id}/discover` | Discover episode metadata only |
 | `POST /api/series/{id}/sync` | Sync and download all missing episodes |
 | `GET /api/series/{id}/episodes` | List episode status and queue position |
