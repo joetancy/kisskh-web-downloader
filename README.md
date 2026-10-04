@@ -93,6 +93,10 @@ downloaded. Use **Download all missing** or select episodes for manual downloads
 **Stop** action beside a queued or downloading episode to stop it. Set
 `SYNC_INTERVAL_MINUTES` to change the schedule.
 
+For a completed episode, use **Delete files** to remove its downloaded video
+and subtitle from the media directory. The episode remains in the list as
+pending and can be downloaded manually again.
+
 The dashboard's **Download queue** setting controls simultaneous episode
 downloads. It defaults to 1, accepts values from 1 through 16, is saved in
 SQLite, and takes effect without restarting the service.
@@ -151,6 +155,7 @@ The interactive API documentation is available at **/docs**.
 | `POST /api/series/{id}/sync` | Sync and download all missing episodes |
 | `GET /api/series/{id}/episodes` | List episode status and queue position |
 | `POST /api/episodes/{id}/stop` | Stop a queued or active episode download |
+| `DELETE /api/episodes/{id}/files` | Delete completed episode video and subtitle files |
 | `POST /api/series/{id}/episodes/download` | Download selected episode IDs |
 | `GET /api/jobs` / `GET /api/jobs/{id}` | List jobs or inspect one job |
 

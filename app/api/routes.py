@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy import select
@@ -218,6 +220,34 @@ def stop_download(episode_id: int, db: Session = Depends(get_db)):
     row.error = None
     db.commit()
     return {"status": "stopped"}
+
+
+@router.delete("/episodes/{episode_id}/files", status_code=204)
+def delete_episode_files(episode_id: int, db: Session = Depends(get_db)):
+    row = db.get(Episode, episode_id)
+    if not row:
+        raise HTTPException(404, "Episode not found")
+    if row.status in {"queued", "downloading"}:
+        raise HTTPException(409, "Stop the episode before deleting its files")
+    if row.status != "completed":
+        raise HTTPException(409, "Episode has no completed download to delete")
+
+    media_root = get_settings().media_dir.resolve()
+    files = [Path(path).resolve() for path in (row.video_path, row.subtitle_path) if path]
+    if any(not path.is_relative_to(media_root) for path in files):
+        raise HTTPException(400, "Episode file is outside the configured media directory")
+    try:
+        for path in files:
+            path.unlink(missing_ok=True)
+    except OSError as exc:
+        raise HTTPException(500, "Could not delete episode files") from exc
+
+    row.status = "pending"
+    row.video_path = None
+    row.subtitle_path = None
+    row.downloaded_at = None
+    row.error = None
+    db.commit()
 
 
 @router.get("/jobs")

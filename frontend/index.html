@@ -444,6 +444,20 @@
               }, 'subtle');
               statusLine.append(stop);
             }
+            if (row.status === 'completed') {
+              const deleteFiles = makeButton('Delete files', async () => {
+                if (!window.confirm(`Delete the downloaded files for Episode ${row.episode_number}?`)) return;
+                deleteFiles.disabled = true;
+                try {
+                  await api(`/api/episodes/${row.id}/files`, { method: 'DELETE' });
+                  await showEpisodes(id);
+                } catch (error) {
+                  deleteFiles.disabled = false;
+                  notify(`Could not delete episode files: ${error.message}`);
+                }
+              }, 'subtle');
+              statusLine.append(deleteFiles);
+            }
             const progress = document.createElement('div');
             progress.className = 'progress-track';
             const fill = document.createElement('div');
