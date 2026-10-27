@@ -10,6 +10,7 @@
       try {
         if (localStorage.getItem('kisskh-theme') === 'dark') {
           document.documentElement.dataset.theme = 'dark';
+          document.documentElement.classList.add('dark');
           document.querySelector('meta[name="theme-color"]').content = '#09090b';
         }
       } catch (_) {}
@@ -24,7 +25,8 @@
         --background: #fafafa;
         --foreground: #09090b;
         --card: #fff;
-        --muted: #71717a;
+        --muted: #f4f4f5;
+        --muted-foreground: #71717a;
         --border: #e4e4e7;
         --input: #e4e4e7;
         --primary: #18181b;
@@ -39,7 +41,8 @@
         --background: #09090b;
         --foreground: #fafafa;
         --card: #111113;
-        --muted: #a1a1aa;
+        --muted: #27272a;
+        --muted-foreground: #c4c4cc;
         --border: #27272a;
         --input: #27272a;
         --primary: #fafafa;
@@ -58,11 +61,11 @@
       .brand { display: flex; align-items: center; gap: 12px; }
       .brand-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 9px; background: #18181b; color: white; font-size: 17px; }
       h1 { margin: 0; font-size: 1.25rem; font-weight: 650; letter-spacing: -.035em; }
-      .tagline, .muted { color: var(--muted); }
+      .tagline, .muted { color: var(--muted-foreground); }
       .tagline { margin: 3px 0 0; font-size: .82rem; }
       .header-controls { display: flex; align-items: center; gap: 18px; }
       .status-indicator { display: flex; align-items: center; gap: 8px; color: #52525b; font-size: .8rem; }
-      .theme-toggle { gap: 8px; min-height: auto; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: .8rem; }
+      .theme-toggle { gap: 8px; min-height: auto; padding: 0; border: 0; background: transparent; color: var(--muted-foreground); font-size: .8rem; }
       .theme-toggle:hover:not(:disabled) { background: transparent; color: var(--foreground); }
       .switch-track { position: relative; width: 32px; height: 18px; flex: 0 0 32px; border-radius: 999px; background: #d4d4d8; transition: background .18s; }
       .switch-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 2px #0003; transition: transform .18s; }
@@ -72,7 +75,7 @@
       .panel { border: 1px solid var(--border); border-radius: var(--radius-lg, 9px); background: var(--card); }
       .add-panel { padding: 20px; margin-bottom: 16px; }
       .settings-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; margin: 0 0 16px; }
-      .setting-description { margin-top: 4px; color: var(--muted); font-size: .8rem; }
+      .setting-description { margin-top: 4px; color: var(--muted-foreground); font-size: .8rem; }
       .setting-controls { display: flex; align-items: center; gap: 9px; }
       select { min-height: 36px; }
       .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 13px; }
@@ -80,19 +83,19 @@
       .add-form { display: flex; flex-wrap: wrap; gap: 9px; }
       .add-form input { flex: 1 1 300px; }
       .series-heading { margin: 30px 2px 12px; }
-      .series-count { color: var(--muted); font-size: .8rem; }
+      .series-count { color: var(--muted-foreground); font-size: .8rem; }
       #list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
       .series-card { overflow: hidden; padding: 18px; }
       .series-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
       .series-title { margin: 1px 0 0; font-size: .98rem; font-weight: 600; letter-spacing: -.015em; overflow-wrap: anywhere; }
-      .series-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; color: var(--muted); font-size: .78rem; }
+      .series-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 6px; color: var(--muted-foreground); font-size: .78rem; }
       .auto-download-label { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; margin-top: 5px; cursor: pointer; }
       .actions { display: flex; flex-wrap: wrap; gap: 6px; }
-      .feedback { display: none; align-items: center; gap: 9px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--background); color: var(--muted); font-size: .84rem; }
+      .feedback { display: none; align-items: center; gap: 9px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--background); color: var(--muted-foreground); font-size: .84rem; }
       .feedback.visible { display: flex; }
       .feedback.error { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
       .feedback.success { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
-      .feedback.info { border-color: var(--border); background: var(--background); color: var(--muted); }
+      .feedback.info { border-color: var(--border); background: var(--background); color: var(--muted-foreground); }
       .feedback .spinner { width: 14px; height: 14px; flex: 0 0 14px; border: 2px solid #d4d4d8; border-top-color: #18181b; border-radius: 50%; animation: spin .8s linear infinite; }
       .feedback.success .spinner, .feedback.error .spinner { display: none; }
       @keyframes spin { to { transform: rotate(360deg); } }
@@ -116,14 +119,14 @@
       .badge.completed { border-color: #86efac; background: #dcfce7; color: #15803d; }
       .badge.failed { border-color: #fca5a5; background: #fee2e2; color: #b91c1c; }
       .selection-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
-      .empty { padding: 36px 20px; color: var(--muted); text-align: center; font-size: .875rem; }
+      .empty { padding: 36px 20px; color: var(--muted-foreground); text-align: center; font-size: .875rem; }
       .empty strong { display: block; margin-bottom: 5px; color: #18181b; font-size: .95rem; font-weight: 600; }
       .toast { position: fixed; right: 20px; bottom: 20px; z-index: 5; max-width: min(420px, calc(100% - 40px)); padding: 12px 15px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--foreground); box-shadow: 0 8px 24px #00000012; font-size: .875rem; opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s; }
       :root[data-theme="dark"] .brand-icon { background: #fafafa; color: #18181b; }
       :root[data-theme="dark"] .status-indicator { color: #a1a1aa; }
       :root[data-theme="dark"] .feedback.error { border-color: #7f1d1d; background: #1c0b0b; color: #fca5a5; }
       :root[data-theme="dark"] .feedback.success { border-color: #14532d; background: #07170d; color: #86efac; }
-      :root[data-theme="dark"] .feedback.info { border-color: var(--border); background: var(--background); color: var(--muted); }
+      :root[data-theme="dark"] .feedback.info { border-color: var(--border); background: var(--background); color: var(--muted-foreground); }
       :root[data-theme="dark"] .feedback .spinner { border-color: #3f3f46; border-top-color: #fafafa; }
       :root[data-theme="dark"] .episode-toolbar { color: #d4d4d8; }
       :root[data-theme="dark"] .episode-error { color: #fca5a5; }
@@ -135,7 +138,7 @@
       :root[data-theme="dark"] .empty strong { color: var(--foreground); }
       .toast.visible { opacity: 1; transform: translateY(0); }
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-      .service-status { color: var(--muted); }
+      .service-status { color: var(--muted-foreground); }
       .service-status .dot { background: #a1a1aa; }
       .service-status.online .dot { background: #22c55e; }
       .service-status.offline .dot { background: #ef4444; }
@@ -214,6 +217,7 @@
       function setTheme(theme, persist = false) {
         const isDark = theme === 'dark';
         document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+        document.documentElement.classList.toggle('dark', isDark);
         themeToggle.setAttribute('aria-checked', String(isDark));
         themeToggle.setAttribute('aria-label', isDark ? 'Dark mode enabled' : 'Dark mode disabled');
         document.querySelector('meta[name="theme-color"]').content = isDark ? '#09090b' : '#f8fafc';
