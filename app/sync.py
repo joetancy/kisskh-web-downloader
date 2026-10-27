@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -13,6 +14,7 @@ from app.services.organizer import organize
 _locks: dict[int, asyncio.Lock] = {}
 _tasks: set[asyncio.Task] = set()
 _episode_tasks: dict[int, asyncio.Task] = {}
+logger = logging.getLogger(__name__)
 
 
 class DownloadLimiter:
@@ -98,6 +100,15 @@ async def _download_one(
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            logger.error(
+                "Episode pipeline failed series_id=%s episode_id=%s episode_number=%s "
+                "error_type=%s detail=%s",
+                series_id,
+                episode_id,
+                metadata.episode_number,
+                type(exc).__name__,
+                str(exc)[:500],
+            )
             with SessionLocal() as db:
                 episode = db.get(Episode, episode_id)
                 if episode:
@@ -167,6 +178,13 @@ async def sync_series(
                 series.last_sync_at = datetime.now(UTC)
                 db.commit()
             except Exception as exc:
+                logger.error(
+                    "Series sync failed series_id=%s job_id=%s error_type=%s detail=%s",
+                    series_id,
+                    job_id,
+                    type(exc).__name__,
+                    str(exc)[:500],
+                )
                 if job:
                     job.status = "failed"
                     job.error = str(exc)[:2000]
@@ -205,7 +223,12 @@ async def sync_series(
         if added:
             try:
                 await refresh_library()
-            except Exception:
+            except Exception as exc:
+                logger.warning(
+                    "Jellyfin refresh failed series_id=%s error_type=%s",
+                    series_id,
+                    type(exc).__name__,
+                )
                 if job_id:
                     with SessionLocal() as db:
                         job = db.get(SyncJob, job_id)
