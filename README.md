@@ -1,3 +1,5 @@
+![Hero image](assets/hero.png)
+
 # KissKH Sync
 
 KissKH Sync is a self-hosted web app for tracking KissKH series, automatically
