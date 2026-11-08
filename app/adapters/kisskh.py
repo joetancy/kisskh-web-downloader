@@ -2,8 +2,11 @@
 
 import asyncio
 import logging
+import multiprocessing
 import os
 import re
+import threading
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -36,6 +39,35 @@ class KissKHError(RuntimeError):
 
 
 logger = logging.getLogger(__name__)
+_key_generation_pool: ProcessPoolExecutor | None = None
+_key_generation_pool_lock = threading.Lock()
+
+
+def _generate_kkeys(
+    source_url: str, drama_id: int, episode_id: int, number: int
+) -> dict[str, str]:
+    """Generate KissKH keys in a clean process for Playwright's sync API."""
+    api, _ = KissKHClient._api(source_url)
+    try:
+        return api.generate_kkeys(drama_id, episode_id, number, "Drama")
+    finally:
+        api.cleanup()
+
+
+def _generate_kkeys_isolated(
+    source_url: str, drama_id: int, episode_id: int, number: int
+) -> dict[str, str]:
+    global _key_generation_pool
+    with _key_generation_pool_lock:
+        if _key_generation_pool is None:
+            _key_generation_pool = ProcessPoolExecutor(
+                max_workers=4,
+                mp_context=multiprocessing.get_context("spawn"),
+            )
+        pool = _key_generation_pool
+    return pool.submit(
+        _generate_kkeys, source_url, drama_id, episode_id, number
+    ).result()
 
 
 def _safe_error_detail(exc: Exception) -> str:
@@ -150,7 +182,11 @@ class KissKHClient:
                     int(float(number_match.group(1))) if number_match else episode.episode_number
                 )
                 stage = "generate stream keys"
-                keys = api.generate_kkeys(drama_id, episode_id, number, "Drama")
+                # kisskh-downloader 0.2.4 uses Playwright's synchronous API here.
+                # A dedicated process avoids inheriting the web server's asyncio loop.
+                keys = _generate_kkeys_isolated(
+                    episode.source_url, drama_id, episode_id, number
+                )
                 stage = "resolve episode stream"
                 stream = api.get_stream_url(episode_id, keys.get("stream", ""))
                 if not stream or "tickcounter" in stream:
