@@ -43,9 +43,7 @@ _key_generation_pool: ProcessPoolExecutor | None = None
 _key_generation_pool_lock = threading.Lock()
 
 
-def _generate_kkeys(
-    source_url: str, drama_id: int, episode_id: int, number: int
-) -> dict[str, str]:
+def _generate_kkeys(source_url: str, drama_id: int, episode_id: int, number: int) -> dict[str, str]:
     """Generate KissKH keys in a clean process for Playwright's sync API."""
     api, _ = KissKHClient._api(source_url)
     try:
@@ -65,9 +63,7 @@ def _generate_kkeys_isolated(
                 mp_context=multiprocessing.get_context("spawn"),
             )
         pool = _key_generation_pool
-    return pool.submit(
-        _generate_kkeys, source_url, drama_id, episode_id, number
-    ).result()
+    return pool.submit(_generate_kkeys, source_url, drama_id, episode_id, number).result()
 
 
 def _safe_error_detail(exc: Exception) -> str:
@@ -184,9 +180,7 @@ class KissKHClient:
                 stage = "generate stream keys"
                 # kisskh-downloader 0.2.4 uses Playwright's synchronous API here.
                 # A dedicated process avoids inheriting the web server's asyncio loop.
-                keys = _generate_kkeys_isolated(
-                    episode.source_url, drama_id, episode_id, number
-                )
+                keys = _generate_kkeys_isolated(episode.source_url, drama_id, episode_id, number)
                 stage = "resolve episode stream"
                 stream = api.get_stream_url(episode_id, keys.get("stream", ""))
                 if not stream or "tickcounter" in stream:
